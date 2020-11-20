@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const Book = require('../models/book.js')
+const Author = require('../models/author.js')
 
 
 /* GET home page */
@@ -62,8 +63,8 @@ router.get('/books/:bookId', (req, res, next) => {
       res.render('book-details', {book: theBook})
     })
     .catch(e => console.log(e))
+  
 })
-
 
 // HOMEPAGE DE LIBROS ("/BOOKS")
 
@@ -75,6 +76,79 @@ router.get('/books', (req, res, next) => {
     })
     .catch(e => console.log(e))
   
+})
+
+// CREAR AUTORES
+
+// GET - HACIENDO UNA PETICIÓN AL SERVIDOR SIN MANDAR INFO PRIVADA
+router.get('/authors/add', (req, res, next) => {
+  res.render('author-add');
+})
+
+// POST - SE REFIERE A ENVIAR INFORMACIÓN HACIA EL SERVIDOR DE MANERA PRIVADA Y HACIENDO UNA PETICIÓN.
+router.post('/authors/add', (req, res, next) => {
+  console.log(req.body)
+  const { name, lastName, nationality, birthday, pictureUrl} = req.body;
+  const newAuthor = new Author({
+    name,
+    lastName,
+    nationality,
+    birthday,
+    pictureUrl
+  })
+
+  newAuthor
+    .save()
+    .then(book => {
+      res.redirect('/books')
+    })
+    .catch(error => {
+      console.log(error)
+    })
+})
+
+// localhost:3000/book/ertyjn23guikjjhdalkj2h34
+router.get('/book/:id', (req, res, next) => {
+
+    console.log(req.params)
+    const bookId = req.params.id;
+
+    // REGEX
+    if(!/^[0-9a-fA-F]{24}$/.test(bookId)){
+      return res.status(404).render('not-found');
+    }
+
+    console.log("Aquí vamos")
+    Book.findOne({_id: bookId})
+    .populate('author')
+    .then(book => {
+      console.log(book)
+      if (!book) {
+        return res.status(404).render('not-found')
+      }
+
+      res.render('book-detail', {book})
+
+    })
+    .catch(next)
+
+})
+
+
+// COMENTARIOS
+router.post('/reviews/add', (req, res, next) => {
+  console.log(req.body)
+  const { user, comments } = req.body;
+
+  Book.update(
+    {_id: req.query.book_id},
+    { $push: {reviews: {user, comments}}}
+  )
+  .then(book => {
+    res.redirect('/books')
+  })
+  .catch(error => next(error))
+
 })
 
 module.exports = router;
